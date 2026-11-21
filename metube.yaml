@@ -10,6 +10,7 @@ metadata:
   namespace: metube
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
   strategy:
     type: Recreate          # never run two copies writing the same folder
   selector:
