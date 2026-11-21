@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: metube
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metube
+  namespace: metube
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate          # never run two copies writing the same folder
+  selector:
+    matchLabels:
+      app: metube
+  template:
+    metadata:
+      labels:
+        app: metube
+    spec:
+      containers:
+        - name: metube
+          image: alexta69/metube
+          ports:
+            - containerPort: 8081
+          env:
+            - name: TZ
+              value: America/Los_Angeles
+            - name: DELETE_FILE_ON_TRASHCAN
+              value: "true"
+            - name: YTDL_OPTIONS
+              value: '{"download_archive":"/downloads/.metube/music-download-archive.txt"}'
+          volumeMounts:
+            - name: downloads
+              mountPath: /downloads
+      volumes:
+        - name: downloads
+          hostPath:
+            path: /mnt/media/music-staging
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metube
+  namespace: metube
+spec:
+  type: NodePort
+  selector:
+    app: metube
+  ports:
+    - port: 8081
+      targetPort: 8081
+      nodePort: 30081
