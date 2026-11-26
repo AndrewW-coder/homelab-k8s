@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: navidrome
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: navidrome-data
+  namespace: navidrome
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: navidrome
+  namespace: navidrome
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: navidrome
+  template:
+    metadata:
+      labels:
+        app: navidrome
+    spec:
+      securityContext:          # same as "user: 1000:1000" in Compose
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: navidrome
+          image: deluan/navidrome:latest
+          ports:
+            - containerPort: 4533
+          env:
+            - name: ND_LOGLEVEL
+              value: info
+            - name: TZ
+              value: America/Los_Angeles
+            - name: ND_SCANNER_PURGEMISSING
+              value: always
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: music
+              mountPath: /music
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: navidrome-data
+        - name: music
+          hostPath:
+            path: /mnt/media/music
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: navidrome
+  namespace: navidrome
+spec:
+  type: NodePort
+  selector:
+    app: navidrome
+  ports:
+    - port: 4533
+      targetPort: 4533
+      nodePort: 30533
