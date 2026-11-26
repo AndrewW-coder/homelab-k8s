@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
         - name: tubearchivist
-          image: bbilly1/tubearchivist
+          image: bbilly1/tubearchivist@sha256:ba1c846ddd0c6fdd0f040727129d2466e03b7a0c26499223839d450c7586ac09
           ports:
             - containerPort: 8000
           envFrom:
