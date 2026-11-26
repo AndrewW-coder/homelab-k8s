@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+  namespace: tubearchivist
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archivist-redis
+  namespace: tubearchivist
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: archivist-redis
+  template:
+    metadata:
+      labels:
+        app: archivist-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis/redis-stack-server
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: redis-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: archivist-redis
+  namespace: tubearchivist
+spec:
+  selector:
+    app: archivist-redis
+  ports:
+    - port: 6379

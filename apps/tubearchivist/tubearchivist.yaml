@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ta-cache
+  namespace: tubearchivist
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tubearchivist
+  namespace: tubearchivist
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: tubearchivist
+  template:
+    metadata:
+      labels:
+        app: tubearchivist
+    spec:
+      containers:
+        - name: tubearchivist
+          image: bbilly1/tubearchivist
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: ta-secrets
+          env:
+            - name: ES_URL
+              value: http://archivist-es:9200
+            - name: REDIS_CON
+              value: redis://archivist-redis:6379
+            - name: HOST_UID
+              value: "1000"
+            - name: HOST_GID
+              value: "1000"
+            - name: TA_USERNAME
+              value: bananabrigade
+            - name: TZ
+              value: America/Los_Angeles
+            - name: TA_HOST     # every URL you'll reach it by, space-separated
+              value: "http://192.168.0.15:30800 https://archive.home.lan http://tubearchivist.tubearchivist.svc.cluster.local:8000"
+          volumeMounts:
+            - name: youtube
+              mountPath: /youtube
+            - name: cache
+              mountPath: /cache
+      volumes:
+        - name: youtube
+          hostPath:
+            path: /mnt/media/youtube
+            type: Directory
+        - name: cache
+          persistentVolumeClaim:
+            claimName: ta-cache
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tubearchivist
+  namespace: tubearchivist
+spec:
+  type: NodePort
+  selector:
+    app: tubearchivist
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30800
