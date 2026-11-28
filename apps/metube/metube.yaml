@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: metube
-          image: alexta69/metube
+          image: docker.io/alexta69/metube@sha256:c423654da5b9d29b02a8092713607b906d63d17fd7e0a2f52228218a0d3e2a7b
           ports:
             - containerPort: 8081
           env:
